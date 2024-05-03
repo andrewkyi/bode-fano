@@ -1,0 +1,50 @@
+#TEMPLATE
+kent circuit
+
+#PARAMS
+model,jj1
+level,1
+icrit_mag,1.0e-6
+i1_phase,0
+i1_mag,1e-9
+i1_freq,30e6
+idc_mag,1e-7
+lb_mag,3e-10
+k1_mag,1
+l1_mag,3e-10
+ics1_mag,1.1e-6
+phi1_mag,0
+ics2_mag,2.2e-6
+phi2_mag,0
+l2_mag,1e-10
+tran_step,1e-11
+tran_stop,6e-7
+tran_start,1e-7
+maxdata,1024000
+filename,Kent
+
+#MEASURABLES
+@b1[phase] @b2[phase] i(lb) i(l1) i(l2) v(0)-v(4) v(1)-v(0) v(2)-v(0) v(3)-v(2) v(4)-v(3) v(101) v(102)
+
+#CIRCUIT
+Kent circuit
+.model {model} jj(level={level}, icrit={icrit_mag})
+i1 0 1 ac sin({i1_phase} {i1_mag} {i1_freq})
+idc 0 1 {idc_mag}
+lb 1 0 {lb_mag}
+k1 lb l1 {k1_mag}
+l1 0 2 {l1_mag}
+b1 2 3 101 {model} ics={ics1_mag} phi={phi1_mag}
+b2 3 4 102 {model} ics={ics2_mag} phi={phi2_mag}
+l2 4 0 {l2_mag}
+.tran {tran_step} {tran_stop} {tran_start} uic 
+.control
+set maxdata={maxdata}
+run
+write {filename}.txt {measurables}
+.endc
+
+#VARIATIONS
+
+#NOTES
+This is the circuit that Kent suggested as a possible method of Bode-Fano evasion.
