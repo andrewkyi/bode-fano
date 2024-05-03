@@ -1,0 +1,50 @@
+#TEMPLATE
+rifkin circuit
+
+#PARAMS
+model,jj1
+level,1
+icrit_mag,1.0e-6
+i1_phase,0
+i1_mag,1e-9
+i1_freq,30e6
+r1_mag,0.2
+c1_mag,180e-12
+l1_mag,1.6e-7
+k1_mag,0.09125
+l2_mag,1.0e-7
+ics_mag,1.1e-6
+phi_mag,0
+c1_offset_mag,0
+tran_step,1e-11
+tran_stop,6e-7
+tran_start,1e-7
+maxdata,1024000
+filename,Rifkin
+
+#MEASURABLES
+@b1[phase] i(l1) i(l2) v(0)-v(3) v(1)-v(0) v(2)-v(1) v(3)-v(2) v(5)-v(0) vm(5) v(101)
+
+#CIRCUIT
+Rifkin circuit
+.model {model} jj(level={level}, icrit={icrit_mag})
+i1 0 1 ac sin({i1_phase} {i1_mag} {i1_freq})
+r1 1 2 {r1_mag}
+c1 3 0 {c1_mag}
+l1 2 3 {l1_mag}
+k1 l1 l2 {k1_mag}
+l2 0 5 {l2_mag}
+b1 0 5 101 {model} ics={ics_mag} phi={phi_mag}
+.ic v(0)=0 v(3)={c1_offset_mag}
+.tran {tran_step} {tran_stop} {tran_start} uic 
+.control
+set maxdata={maxdata}
+run
+write {filename}.txt {measurables}
+.endc
+
+#VARIATIONS
+
+#NOTES
+This is a template of the circuit from Rifkin and Deaver Jr., Phys. Rev. B 13, 9 (1976).
+Default 
