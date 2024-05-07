@@ -1,0 +1,47 @@
+#TEMPLATE
+simple parallel circuit
+
+#PARAMS
+model,jj1
+level,1
+icrit_mag,1.0e-6
+i1_phase,0
+i1_mag,1e-9
+i1_freq,30e6
+ics_mag,1.1e-6
+phi_mag,0
+lb_mag,3e-10
+l1_mag,0
+k1_mag,1
+lb_bias_mag,3.0e-12
+ibias_mag, 0
+tran_step,1e-11
+tran_stop,6e-7
+tran_start,1e-7
+maxdata,1024000
+filename,Parallel
+
+#MEASURABLES
+@b1[phase] i(lb) i(lb_bias) v(0)-v(2) v(1)-v(0) v(2)-v(1) v(3)-v(0) v(101)
+
+#CIRCUIT
+Parallel circuit
+.model {model} jj(level={level}, icrit={icrit_mag})
+i1 0 1 ac sin({i1_phase} {i1_mag} {i1_freq})
+b1 1 2 101 {model} ics={ics_mag} phi={phi_mag}
+lb 2 1 {lb_mag}
+l1 2 0 {l1_mag}
+k1 lb lb_bias {k1_mag}
+lb_bias 3 0 {lb_bias_mag}
+ibias_mag 0 3 {ibias_mag}
+.tran {tran_step} {tran_stop} {tran_start} uic 
+.control
+set maxdata={maxdata}
+run
+write {filename}.txt {measurables}
+.endc
+
+#VARIATIONS
+
+#NOTES
+This is a parallel circuit with an optional inductor connected in series.
