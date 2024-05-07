@@ -19,6 +19,7 @@ class CircuitData:
         self.params = {}  # dictionary with all params
         self.circuit_type = None
         self.circuit_text = {}  # dictionary used to create .cir file (& maybe create variations or new templates later)
+        self.measurables = ""
         self.filename = None  # actual filename
         self.integer_params = ["level", "maxdata"] # parameters that use integer values in wrspice
         self.notes = ""
@@ -31,9 +32,10 @@ class CircuitData:
     def __str__(self):
         return self.notes  # prints template notes
         
-    def simulation_cycle(self, template_name, params={}):  # can we get this inherited or sth?
-        self.reset()
-        self.read_template(template_name, params)  # or smth else later
+    def simulation_cycle(self, template_name, param_file_name=None):  # can we get this inherited or sth?
+        if self.circuit_type != template_name:  # only if using a different circuit mid-script
+            self.reset()
+        self.read_template(template_name, param_file_name)  # or smth else later
         self.create_cirfile()
         self.simulate_circuit()
         self.read_results()
@@ -41,14 +43,35 @@ class CircuitData:
     def change_param(self, param, value):
         self.params[param] = value 
         
-    def read_params_from_file(self, param_file):
-        pass
-        # if params are for a template but are not the default value
+    def read_param(self, param_line):
+        # read param from a text line, either from template default or separate file
+        param = param_line.split(",")  # gets REQUIRED parameter name & default value
+        try:
+            param_value = self.params[param[0]]  # param already in CircuitData
+        except KeyError:
+            param_value = param[1].strip()  # param is from input
+            try: # change param value to wanted type. not required to make a .cir file, but is when using params for math
+                if param[0] in self.integer_params: param_value = int(param_value)  # param needs to be int
+                else: param_value = float(param_value.strip())  # param needs to be float
+            except ValueError: pass  # param is string (leave alone)
+        finally:
+            self.params[param[0]] = param_value
          
-    def read_template(self, template_name, params={}):
-        # if params is None: get params from template defaults
-        # else: get params from input
-        template_file = open(f"{template_name}_template", "r")
+    def read_template(self, template_name, param_file_name=None):
+        # if param_file exists, values there are prioritized
+        # if there is no param_file, default values in template are used
+        if param_file_name is not None:
+            param_file = open(f"{param_file_name}", "r")  # must include extension
+            param_counter = 0
+            for param_line in param_file:
+                if param_line.strip() in ["#PARAMS", "#MEASURABLES"]:
+                    param_counter += 1
+                    continue
+                elif param_line.strip() == "": continue
+                elif param_counter == 1: self.read_param(param_line)
+                elif param_counter == 2: self.measurables = param_line.strip()
+            param_file.close()
+        template_file = open(f"templates/{template_name}_template", "r")
         template_line = None
         template_counter = 0
         for template_line in template_file:
@@ -61,17 +84,10 @@ class CircuitData:
                 continue
             # add data to CircuitData
             elif template_counter == 1:  # template name
-                self.circuit_type = template_line.strip()
+                pass
+                # self.circuit_type = template_line.strip()
             elif template_counter == 2:  # params input
-                param = template_line.split(",")  # gets REQUIRED parameter name & default value
-                try: param_value = params[param[0]]  # param is from input
-                except KeyError: param_value = param[1].strip()  # param is from default
-                try: # change param value to wanted type. not required to make a .cir file, but is when using params for math
-                    if param[0] in self.integer_params: param_value = int(param_value)  # param needs to be int
-                    else: param_value = float(param_value.strip())  # param needs to be float
-                except ValueError: pass  # param is string (leave alone)
-                finally:
-                    self.params[param[0]] = param_value
+                self.read_param(template_line)
             elif template_counter == 3:  # get measurables
                 self.params["measurables"] = template_line.strip()  # list of stuff to measure
             elif template_counter == 4:  # get the lines that are needed to write .cir file
@@ -87,6 +103,8 @@ class CircuitData:
             else: continue  # this shouldn't be needed?
         template_file.close()
         self.filename = self.params["filename"]
+        self.measurables = self.params["measurables"]
+        self.circuit_type = template_name
             
     def create_cirfile(self):  # reads data from params and circuit_text to create cirfile
         cirfile = open(f"{self.filename}.cir", "w")
