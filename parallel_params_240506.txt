@@ -1,0 +1,22 @@
+#PARAMS
+model,jj1
+level,1
+icrit_mag,1.0e-6
+i1_phase,0
+i1_mag,1e-9
+i1_freq,30e6
+ics_mag,1.1e-6
+phi_mag,0
+lb_mag,3e-10
+l1_mag,0
+k1_mag,1
+lb_bias_mag,3.0e-12
+ibias_mag, 0
+tran_step,1e-11
+tran_stop,6e-7
+tran_start,1e-7
+maxdata,1024000
+filename,Parallel_240506
+
+#MEASURABLES
+@b1[phase] i(lb) i(lb_bias) v(0)-v(2) v(1)-v(0) v(2)-v(1) v(3)-v(0) v(101)

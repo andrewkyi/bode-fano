@@ -11,7 +11,7 @@ param_file = "parallel_params_240506.txt"
 # looper settings
 if mode == "looper":
     param_to_change = "ibias_mag"
-    param_list = np.linspace(0e-6, 4e-5, 41)
+    param_list = np.linspace(3.4e-5, 3.5e-5, 11)
     results_to_watch = ["v(101)"]  # phase, leff, etc.
     results_list = {}
     for result in results_to_watch:
@@ -27,9 +27,7 @@ if mode == "runner":
 elif mode == "looper":
     t1 = time.time()
     for param in param_list:
-        print(param)
         cd.change_param(param_to_change, param)
-        print(cd.params)
         cd.simulation_cycle(template, param_file)  # drop the param_file, which is already loaded
         for result in results_to_watch:
             result_value = cd.data[result].to_numpy()[-1]  # final value only for now
