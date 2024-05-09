@@ -5,25 +5,28 @@ from circuit_calcs import *
 
 # runner mode plots various variables in one circuit
 # looper mode plots change of results of one circuit due to change of params
-mode = "runner"  # "looper"  # 
+mode = "looper"  # "runner"  # 
 template = "kent"
 param_file = "kent_params_240507.txt"
+variation = "biased_jj"  # None
 results_to_watch = ["v(101)", "v(102)"]  # phase, leff, etc.
 
 # looper settings
 if mode == "looper":
     param_to_change = "idc_mag"
-    param_list = np.linspace(3e-6, 5e-6, 201)
+    param_list = np.linspace(0e-6, 5e-6, 101)
     results_list = {}
     for result in results_to_watch:
         results_list[result] = []
+
+# Settings end, begin simulating results
 
 # make CircuitData object
 cd = CircuitData()
 
 if mode == "runner":
     # simulate circuit
-    cd.simulation_cycle(template, param_file)
+    cd.simulation_cycle(template, param_file, variation)
     time_array = cd.data["time"]
     for result in results_to_watch:
         plt.plot(time_array, cd.data[result], label=f"{result}")
@@ -37,7 +40,7 @@ elif mode == "looper":
     for param in param_list:
         print(param)
         cd.change_param(param_to_change, param)
-        cd.simulation_cycle(template, param_file)  # drop the param_file, which is already loaded
+        cd.simulation_cycle(template, param_file, variation)
         time_array = cd.data["time"]
         for result in results_to_watch:
             result_value = cd.data[result].to_numpy()[-1]  # final value only for now

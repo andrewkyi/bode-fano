@@ -18,6 +18,7 @@ class CircuitData:
         # from .cir input wrspice file
         self.params = {}  # dictionary with all params
         self.circuit_type = None
+        self.circuit_variation = None
         self.circuit_text = {}  # dictionary used to create .cir file (& maybe create variations or new templates later)
         self.measurables = ""
         self.filename = None  # actual filename
@@ -32,10 +33,10 @@ class CircuitData:
     def __str__(self):
         return self.notes  # prints template notes
         
-    def simulation_cycle(self, template_name, param_file_name=None):  # can we get this inherited or sth?
+    def simulation_cycle(self, template_name, param_file_name=None, variation=None):  # can we get this inherited or sth?
         if self.circuit_type != template_name:  # only if using a different circuit mid-script
             self.reset()
-        self.read_template(template_name, param_file_name)  # or smth else later
+        self.read_template(template_name, param_file_name, variation)  # or smth else later
         self.create_cirfile()
         self.simulate_circuit()
         self.read_results()
@@ -57,7 +58,9 @@ class CircuitData:
         finally:
             self.params[param[0]] = param_value
          
-    def read_template(self, template_name, param_file_name=None):
+    def read_template(self, template_name, param_file_name=None, variation=None):
+        self.circuit_type = template_name
+        self.circuit_variation = variation
         # if param_file exists, values there are prioritized
         # if there is no param_file, default values in template are used
         if param_file_name is not None:
@@ -74,10 +77,12 @@ class CircuitData:
         template_file = open(f"templates/{template_name}_template", "r")
         template_line = None
         template_counter = 0
+        template_variation = False
+        template_vardict = {}  # temporary dictionary to add to circuit text
         for template_line in template_file:
             # print(template_line)
             # template_line = template_line.strip()  # 
-            if template_line.strip() in ["#TEMPLATE", "#PARAMS", "#MEASURABLES", "#CIRCUIT", "#VARIATIONS", "NOTES"]:
+            if template_line.strip() in ["#TEMPLATE", "#PARAMS", "#MEASURABLES", "#CIRCUIT", "#VARIATIONS", "#NOTES"]:
                 template_counter += 1
                 continue
             elif template_line.strip() == "":
@@ -96,15 +101,40 @@ class CircuitData:
                 else: self.circuit_text[cirfile_line[0].strip()] = "\n"  # not the best practice, i think
             elif template_counter == 5:  # change the lines using variations
                 # look for variation title in template file. if match, then fix the circuit_text according to variation
+                var_list = template_line.split("=")
+                if var_list[0] == "var" and var_list[1].strip() == self.circuit_variation:
+                    template_variation = True
+                    print(f"Using variation {var_list[1].strip()}.")
+                if template_variation:
+                    if var_list[0] == "add":  # add to circuit_text
+                        cirfile_line = var_list[1].split(" ", maxsplit=1)
+                        if len(cirfile_line) > 1: template_vardict[cirfile_line[0]] = cirfile_line[1]
+                        else: template_vardict[cirfile_line[0].strip()] = "\n"  # not the best practice, i think
+                    elif var_list[0] == "addm":  # add to measurables in params
+                        self.params["measurables"] += f" {var_list[1].strip()}"
+                    elif var_list[0] == "remove":
+                        self.circuit_text.pop(var_list[1], None)  # remove directly from circuit text
+                    elif var_list[0] == "removem":
+                        self.params["measurables"].replace(var_list[1], "")  # remove directly from measurables
+                        self.params["measurables"].replace("  ", " ")  # remove the double space, if it exists
+                    elif var_list[0] == "change":
+                        cirfile_line = var_list[1].split(" ", maxsplit=1)
+                        self.circuit_text[cirfile_line[0]] = cirfile_line[1]  # change circuit text directly
+                    elif var_list[0] == "end\n":
+                        # finalize changes to circuit_text
+                        pos = list(self.circuit_text.keys()).index(".tran")  # currently hard-coded!!
+                        items = list(self.circuit_text.items())
+                        for key,value in template_vardict.items():
+                            items.insert(pos, (key, value))
+                        self.circuit_text = dict(items)
+                        template_variation = False
                 # things like add remove change --> change measurables almost required
-                pass  # do later
             elif template_counter == 6:  # get template lines
                 self.notes += template_line  # add notes line by line
             else: continue  # this shouldn't be needed?
         template_file.close()
         self.filename = self.params["filename"]
         self.measurables = self.params["measurables"]
-        self.circuit_type = template_name
             
     def create_cirfile(self):  # reads data from params and circuit_text to create cirfile
         cirfile = open(f"{self.filename}.cir", "w")
