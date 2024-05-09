@@ -9,9 +9,9 @@ i1_phase,0
 i1_mag,1e-9
 i1_freq,30e6
 idc_mag,1e-7
-lb_mag,3e-10
+l0_mag,3e-12
 k1_mag,1
-l1_mag,3e-10
+l1_mag,3e-12
 ics1_mag,1.1e-6
 phi1_mag,0
 ics2_mag,2.2e-6
@@ -23,16 +23,21 @@ tran_start,1e-7
 maxdata,1024000
 filename,Kent
 
+l3_mag,3e-12
+l4_mag,3e-12
+k2_mag,-1
+ibias_mag,1e-7
+
 #MEASURABLES
-@b1[phase] @b2[phase] i(lb) i(l1) i(l2) v(0)-v(4) v(1)-v(0) v(2)-v(0) v(3)-v(2) v(4)-v(3) v(101) v(102)
+@b1[phase] @b2[phase] i(l0) i(l1) i(l2) v(0)-v(4) v(1)-v(0) v(2)-v(0) v(3)-v(2) v(4)-v(3) v(101) v(102)
 
 #CIRCUIT
 Kent circuit
 .model {model} jj(level={level}, icrit={icrit_mag})
 i1 0 1 ac sin({i1_phase} {i1_mag} {i1_freq})
 idc 0 1 {idc_mag}
-lb 1 0 {lb_mag}
-k1 lb l1 {k1_mag}
+l0 1 0 {l0_mag}
+k1 l0 l1 {k1_mag}
 l1 0 2 {l1_mag}
 b1 2 3 101 {model} ics={ics1_mag} phi={phi1_mag}
 b2 3 4 102 {model} ics={ics2_mag} phi={phi2_mag}
@@ -45,6 +50,22 @@ write {filename}.txt {measurables}
 .endc
 
 #VARIATIONS
+var=biased_jj
+add=l3 2 3 {l3_mag}
+add=l4 0 5 {l4_mag}
+add=k2 l3 l4 -1
+add=ibias 0 5 {ibias_mag}
+addm=i(l3)
+addm=i(l4)
+end
+var=no_b2
+remove=b2
+change=l2 3 0 {l2_mag}
+removem=v(4)-v(3)
+addm=v(3)-v(0)
+end
 
 #NOTES
 This is the circuit that Kent suggested as a possible method of Bode-Fano evasion.
+Variation "biased_jj" changes one of the junctions to a loop with an inductor which can be flux biased separately.
+Variation "no_b2" removes one of the junctions and just works with one JJ in the circuit.
