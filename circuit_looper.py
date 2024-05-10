@@ -8,13 +8,13 @@ from circuit_calcs import *
 mode = "looper"  # "runner"  # 
 template = "kent"
 param_file = "kent_params_240507.txt"
-variation = "biased_jj"  # None
+variation = "biased_jj"  # None  # 
 results_to_watch = ["v(101)", "v(102)"]  # phase, leff, etc.
 
 # looper settings
 if mode == "looper":
-    param_to_change = "idc_mag"
-    param_list = np.linspace(0e-6, 5e-6, 101)
+    param_to_change = "idc_mag"  # "idc_mag"
+    param_list = np.linspace(0, 2e-6, 201)  # 0e-6, 5e-6, 101)
     results_list = {}
     for result in results_to_watch:
         results_list[result] = []
@@ -50,4 +50,8 @@ elif mode == "looper":
     
     for result in results_to_watch:
         plt.plot(param_list, results_list[result], label=f"{result}")
+    plt.xlabel(f"{param_to_change}")
+    plt.tight_layout()
+    plt.grid()
+    plt.legend()
     plt.show()
