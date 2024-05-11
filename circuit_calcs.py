@@ -3,7 +3,46 @@ from circuit_reader import *
 # definition of constants
 phi0 = cnst.h/(2*cnst.e)
 
-# useful functions
+class CalculatedValues:
+    def __init__(self, label, values, measurable_type):
+        self.label = label  # label for values e.g., leff
+        self.values = values  # a list of values
+        self.measurable_type = measurable_type  # specify type of measurement for plotter
+        self.axis_label = None  # probably same as measurable type, but customizable?
+    
+    # if label is from circuit_data, automatically find label
+
+# probably do a use_calc_val data format transformation
+
+# general circuit/jj functions
+def calc_lc_rfreq(l, c):
+    # frequency, not omega!
+    return 1/(2*np.pi*np.sqrt(l*c))
+
+def calc_lc_q(r, l, c, mode="series"):
+    if mode=="series" or mode=="s":
+        qfactor = 1/r*np.sqrt(l/c)
+    elif mode=="parallel" or mode=="p":
+        qfactor = r*np.sqrt(c/l)
+    else:
+        qfactor = 0
+    return qfactor
+
+def calc_k(l1, l2, m):
+    return m/np.sqrt(l1*l2)
+
+def calc_lj(ic, phi):
+    return phi0/(2*np.pi*ic)/np.cos(phi)
+
+def calc_lj_ibias(ic, ibias):  # incomplete
+    ibias = ibias % (2*ic)
+    phi = np.arcsin(ibias/ic)
+    return phi0/(2*np.pi*ic)/np.cos(phi)
+
+def calc_fj(ic):
+    return ic/(4*np.pi*e)
+
+# rifkin circuit specific functions
 def calc_leff(lt, omega, r, l, cur_l, k=1, ls=0, stabilize_tank=True):
     m2 = k**2*lt*l
     if r == 0 and stabilize_tank:
@@ -76,30 +115,3 @@ def calc_r(reff, rt, leff, lt, m, omega, l, ls, no_r=False):
         denom = rdiff*m**2
         r = num/denom
     return r
-
-def calc_lc_rfreq(l, c):
-    # frequency, not omega!
-    return 1/(2*np.pi*np.sqrt(l*c))
-
-def calc_lc_q(r, l, c, mode="series"):
-    if mode=="series" or mode=="s":
-        qfactor = 1/r*np.sqrt(l/c)
-    elif mode=="parallel" or mode=="p":
-        qfactor = r*np.sqrt(c/l)
-    else:
-        qfactor = 0
-    return qfactor
-
-def calc_k(l1, l2, m):
-    return m/np.sqrt(l1*l2)
-
-def calc_lj(ic, phi):
-    return phi0/(2*np.pi*ic)/np.cos(phi)
-
-def calc_lj_ibias(ic, ibias):  # incomplete
-    ibias = ibias % (2*ic)
-    phi = np.arcsin(ibias/ic)
-    return phi0/(2*np.pi*ic)/np.cos(phi)
-
-def calc_fj(ic):
-    return ic/(4*np.pi*e)
