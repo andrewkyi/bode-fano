@@ -1,16 +1,20 @@
-from circuit_reader import *
+import numpy as np
+import pandas as pd
+import math
+import cmath
+import time
+import re
+import os
+from scipy.fft import fft, fftfreq
+from scipy import constants as cnst
+from matplotlib import pyplot as plt
+from lmfit import Model
+# is this needed, if importing through circuit_reader?
+
+# A file that keeps all calculation methods
 
 # definition of constants
 phi0 = cnst.h/(2*cnst.e)
-
-class CalculatedValues:
-    def __init__(self, label, values, measurable_type):
-        self.label = label  # label for values e.g., leff
-        self.values = values  # a list of values
-        self.measurable_type = measurable_type  # specify type of measurement for plotter
-        self.axis_label = None  # probably same as measurable type, but customizable?
-    
-    # if label is from circuit_data, automatically find label
 
 # probably do a use_calc_val data format transformation
 

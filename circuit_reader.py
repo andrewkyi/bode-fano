@@ -9,6 +9,8 @@ from scipy.fft import fft, fftfreq
 from scipy import constants as cnst
 from matplotlib import pyplot as plt
 from lmfit import Model
+# custom imports
+from circuit_calcs import *
 
 class CircuitData:
     def __init__(self):  # reads WRSpice output data
@@ -20,10 +22,12 @@ class CircuitData:
         self.circuit_type = None
         self.circuit_variation = None
         self.circuit_text = {}  # dictionary used to create .cir file (& maybe create variations or new templates later)
-        self.measurables = ""
+        # measurables: labeled results, can be phase/circuit/voltage (for now)
+        self.measurables = {"phases": [], "currents": [], "voltages": [], "single_phases": [], "others": []}
         self.filename = None  # actual filename
-        self.integer_params = ["level", "maxdata"] # parameters that use integer values in wrspice
+        self.integer_params = ["level", "maxdata"]  # parameters that use integer values in wrspice
         self.notes = ""
+        self.jj_info = {}  # contains node and critical current for JJs
         # from .txt results file
         self.tags = {}  # random stuff at the beginning of results file
         self.data = None
@@ -72,7 +76,7 @@ class CircuitData:
                     continue
                 elif param_line.strip() == "": continue
                 elif param_counter == 1: self.read_param(param_line)
-                elif param_counter == 2: self.measurables = param_line.strip()
+                elif param_counter == 2: self.params["measurables"] = param_line.strip()
             param_file.close()
         template_file = open(f"templates/{template_name}_template", "r")
         template_line = None
@@ -134,7 +138,7 @@ class CircuitData:
             else: continue  # this shouldn't be needed?
         template_file.close()
         self.filename = self.params["filename"]
-        self.measurables = self.params["measurables"]
+        self.classify_measurables()  # classify results after loading template
             
     def create_cirfile(self):  # reads data from params and circuit_text to create cirfile
         cirfile = open(f"{self.filename}.cir", "w")
@@ -185,4 +189,63 @@ class CircuitData:
                 curline = (curline + 1) % len(self.vars)
         # make into pandas dataframe
         self.data = pd.DataFrame.from_dict(data)
-
+        
+    def classify_measurables(self):
+        # function using cool regex tools
+        # find any measurables that are from josephson junctions.
+        r = re.compile("^b")
+        jj_list = list(filter(r.match, self.circuit_text.keys()))
+        # save jj nodes and their critical currents separately
+        r = re.compile("ics")
+        for jj in jj_list:
+            jj_text = self.circuit_text[jj].split()
+            # Phase node is third value in circuit_text
+            jj_node = jj_text[2]
+            # for each jj, find the circuit_text portion that contains the critical current
+            ics_text = list(filter(r.search, jj_text))[0].split("=")[1]
+            # split that part off, and use self.params to fill in that value. Then convert to float
+            ics = float(ics_text.format(**self.params))
+            # some form of using self.params[ics_text.strip("{}")]) could be faster, unsure
+            self.jj_info[jj_node] = ics
+        jj_nodes = self.jj_info.keys()  # [self.circuit_text[jj].split()[2] for jj in jj_list] # [2] is jj node
+        meas_list = self.params["measurables"].split()
+        # start classification
+        # get currents
+        r = re.compile("^i")
+        self.measurables["currents"].extend(list(filter(r.match, meas_list)))
+        # get phases that are of form @b1[phase]
+        r = re.compile("phase")  # use search instead of match
+        self.measurables["single_phases"].extend(list(filter(r.search, meas_list)))
+        # get phases that are of form v(jj_node)
+        jj_node_string = ''.join([f"v\({node}\)|" for node in jj_nodes])[:-1]
+        r = re.compile(jj_node_string)
+        self.measurables["phases"].extend(list(filter(r.match, meas_list)))
+        # self.phases.extend(phase_list)
+        # get voltages of form v(not_jj_node).
+        r = re.compile(f"^(?!{jj_node_string})^v\(")
+        self.measurables["voltages"].extend(list(filter(r.match, meas_list)))
+        
+    def get_jj_inductances(self, as_measurable=False):
+        # find any nodes that were used to measure phase and get their inductances, as a Measurable object if wanted
+        # hopefully none of the phases are exactly zero?
+        jj_inductances = {}
+        for node in self.jj_info.keys():
+            try:  # "try" in case for some reason, a node was not used to measure phase
+                phase = self.data[f"v({node})"].to_numpy()
+                ic = self.jj_info[node]
+                lj = calc_lj(ic, phase)
+                if as_measurable: jj_inductances[node] = Measurable("JJ Inductance", lj, "")
+                else: jj_inductances[node] = lj
+            except IndexError: pass
+        return jj_inductances
+    
+class Measurable:
+    def __init__(self, label, values, measurable_type, axis_label=None):
+        self.label = label  # label for values e.g., leff
+        self.values = values  # a list of values
+        self.measurable_type = measurable_type  # specify type of measurement for plotter
+        if axis_label is None: self.axis_label = self.label  # customizable?
+        else: self.axis_label = axis_label
+        
+    # def __call__(self):
+    #     return self.values.to_numpy()

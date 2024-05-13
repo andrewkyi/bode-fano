@@ -5,7 +5,7 @@ from circuit_calcs import *
 
 # runner mode plots various variables in one circuit
 # looper mode plots change of results of one circuit due to change of params
-mode = "looper"  # "runner"  # 
+mode = "runner"  # "looper"  # 
 template = "kent"
 param_file = "kent_params_240507.txt"
 variation = "biased_jj"  # None  # 
