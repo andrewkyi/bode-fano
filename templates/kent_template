@@ -50,19 +50,54 @@ write {filename}.txt {measurables}
 .endc
 
 #VARIATIONS
-var=biased_jj
-add=l3 2 3 {l3_mag}
-add=l4 0 5 {l4_mag}
-add=k2 l3 l4 -1
-add=ibias 0 5 {ibias_mag}
-addm=i(l3)
-addm=i(l4)
+var;biased_jj
+add;l3 2 3 {l3_mag}
+add;l4 0 5 {l4_mag}
+add;k2 l3 l4 -1
+add;ibias 0 5 {ibias_mag}
+addm;i(l3)
+addm;i(l4)
 end
-var=no_b2
-remove=b2
-change=l2 3 0 {l2_mag}
-removem=v(4)-v(3)
-addm=v(3)-v(0)
+var;no_b2
+remove;b2
+change;l2 3 0 {l2_mag}
+removem;@b2[phase]
+removem;v(0)-v(4)
+removem;v(4)-v(3)
+removem;v(102)
+addm;v(3)-v(0)
+end
+var;no_b2_with_r
+remove;b2
+remove;l2
+add;r1 3 0 {r1_mag}
+removem;@b2[phase]
+removem;v(0)-v(4)
+removem;v(4)-v(3)
+removem;v(102)
+removem;i(l2)
+addm;v(3)-v(0)
+end
+var;no_b2_with_c
+remove;b2
+remove;l2
+add;c1 3 0 {c1_mag}
+removem;@b2[phase]
+removem;v(0)-v(4)
+removem;v(4)-v(3)
+removem;v(102)
+removem;i(l2)
+addm;v(3)-v(0)
+end
+var;pulsed_no_b2
+change;idc 0 1 pulse(0 {idc_mag} 1e-13 0 0 1e-11)
+remove;b2
+change;l2 3 0 {l2_mag}
+removem;@b2[phase]
+removem;v(0)-v(4)
+removem;v(4)-v(3)
+removem;v(102)
+addm;v(3)-v(0)
 end
 
 #NOTES
